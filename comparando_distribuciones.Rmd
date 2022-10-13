@@ -1,0 +1,96 @@
+---
+title: "Comparando distribuciones"
+author: "Isaac VM"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+## Boxplots
+Sirve para comparar distribuciones de variables discretas.
+Para estos ejemplos se usara el dataset `ToothGrowth`.
+
+```{r message=FALSE}
+# Cargar librerías
+library(dplyr)
+library(ggplot2)
+library(rstatix)
+
+# Cargar nuestros datos de interés
+data <- ToothGrowth
+
+# Inspeccionar nuestros datos
+str(data)
+```
+
+En nuestro dataset se puede observar que la variable `dose` no es de tipo factor. Para que se pueda considerar una variable discreta hay que convertirla a factor.
+
+```{r}
+# Convertir la variable dose a factor
+data$dose <- factor(data$dose)
+
+# Comprobemos el cambio
+str(data)
+```
+
+Antes de comenzar a graficar, hay que explicar que son los cuartiles y el "resumen de los cinco números".
+
+### Cuartiles
+Son valores que dividen una distribución de datos en cuatro partes iguales. Estos valores ayudan a evaluar rápidamente la dispersión y la tendencia central de un conjunto de datos. 
+
+- **Q1** 25% de los datos es menor o igual a este valor
+- **Q2** 50% de los datos es menor o igual a este valor. Este valor es mejor conocido como la **mediana**
+- **Q3** 75% de los datos es menor o igual a este valor.
+
+- **IQR** Rango intercuartil, es la distancia entre el primer cuartil y el tercer cuartil (**Q1 - Q3**). Abarca centralmente el 50% de los datos.
+
+
+La mediana y el rango intercuartil al no ser afectados por valores extremos, constituyen una mejor medida de la tendencia central y la dispersión de conjuntos de datos altamente asimétricos, en comparación con la media y la desviación estándar.
+
+### "Five-number summary"
+Así como los cuartiles resumen y dividen en cuatro una distribución, los percentiles la dividen en 100, el resumen de los cinco números se encarga de hacerla más fácil de entender.
+
+1. **Mínimo de la muestra**
+2. **Q1** <= 25%
+3. **Mediana** == 50%
+4. **Q3** <= 75%
+5. **Máximo de la muestra**
+
+```{r}
+# Cálculo en R básico
+summary(data$len)
+summary(data)
+
+# Cálculo por grupos con dplyr
+data_ss <- data %>% 
+  group_by(supp, dose) %>% 
+  summarise(min = min(len),
+            q1 = quantile(len, probs = 0.25),
+            q2 = quantile(len, probs = 0.50),
+            q3 = quantile(len, probs = 0.75),
+            max = max(len))
+
+data_ss
+
+# Cálculo con la función get_summary_stats() del paquete rstatix
+data_ss2 <- data %>% 
+  group_by(supp, dose) %>% 
+  get_summary_stats(type = "five_number")
+
+data_ss2
+```
+
+Con esta información ya podemos definir un boxplot.
+
+### Creando un boxplot
+Un boxplot consiste en:
+
+![Boxplot, fuente: https://chartio.com/learn/charts/box-plot-complete-guide/](boxplot.png)
+
+```{r}
+# Boxplot
+ggplot(data, aes(dose, len, fill = supp)) +
+  geom_boxplot()
+```
+
+
+
